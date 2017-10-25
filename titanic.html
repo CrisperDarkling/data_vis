@@ -26,35 +26,86 @@
 
     <div>
         <h3>Chart</h3>
-        <div id="titanic"></div>
+        <div id="titanic-chart"></div>
     </div>
 
     <script>
     queue()
-        .defer(d3.csv, "data/titanic_data.csv")
+        .defer(d3.csv, "data/titanic.csv")
         .await(makeGraphs);
-    function makeGraphs(error, transactionsData) {
-        var ndx = crossfilter(transactionsData);
+
+    function makeGraphs(error, titanicData) {
+        var ndx = crossfilter(titanicData);
         
-    
+        titanicData.forEach(function(d){
+            
+            d.Age = parseFloat(d.Age);
+            if (isNaN(d.Age)) {
+                d.Age = 0;
+            }
+            
+            
+            
+            if (d['Embarked'] == 'Q') {
+                d.Embarked = 'Queenstown';
+            } 
+            else if (d.Embarked == 'C') {
+                d.Embarked = 'Cherbourg';
+            }
+            else if (d.Embarked == 'S') {
+                d.Embarked = "Southampton";
+            } 
+            else {
+                d.Embarked = "Unknown";
+            }
+        });
         
-        var dim = ndx.dimension(dc.pluck('Pclass'));
-        var measure = dim.group();
+        var dim = ndx.dimension(dc.pluck('Sex'));
+
+        function add_item(p, v) {
+            p.count++;
+            p.total += v.Age;
+            p.average = p.total / p.count;
+            return p;
+        }
         
-        dc.barChart("#titanic")
+        
+        function remove_item(p, v) {
+            p.count--;
+            if(p.count == 0){
+                p.total = 0;
+                p.average = 0;
+            } else {
+                p.total -= v.Age;
+                p.average = p.total / p.count;
+            }
+            return p;
+        }
+        
+        function init() {
+            return { count: 0, total: 0, average: 0 };
+        }
+        
+        var measure = dim.group().reduce(add_item, remove_item, init);
+        
+        dc.barChart("#titanic-chart")
             .width(900)
             .height(450)
             .margins({top: 10, right: 50, bottom: 30, left: 50})
             .dimension(dim)
             .group(measure)
+            .valueAccessor(function (d) {
+                console.log(d.value.average);
+                return d.value.average;
+            })
             .transitionDuration(500)
             .x(d3.scale.ordinal())
             .xUnits(dc.units.ordinal)
-            .xAxisLabel("Embarked From")
+            .xAxisLabel("Embarked")
             .yAxis().ticks(4);
+
         dc.renderAll();
     }
-    
     </script>
 </body>
 </html>
