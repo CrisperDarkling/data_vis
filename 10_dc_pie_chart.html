@@ -22,28 +22,31 @@
 <body>
     <h1>Data Visualisation</h1>
 
-    <h2>DC BarChart</h2>
+    <h2>DC PieChart</h2>
 
     <div>
-        <h3>Chart</h3>
-        <div id="titanic-chart"></div>
+        <h3>Amount of passengers by Embark Location</h3>
+        <div id="embark-chart"></div>
+    </div>
+
+    <div>
+        <h3>Amount of passengers by Sex</h3>
+        <div id="sex-chart"></div>
+    </div>
+
+    <div>
+        <h3>Amount of passengers by Class</h3>
+        <div id="Pclass-chart"></div>
     </div>
 
     <script>
     queue()
         .defer(d3.csv, "data/titanic_data.csv")
         .await(makeGraphs);
-
     function makeGraphs(error, titanicData) {
         var ndx = crossfilter(titanicData);
         
         titanicData.forEach(function(d){
-            
-            d.Age = parseFloat(d.Age);
-            if (isNaN(d.Age)) {
-                d.Age = 0;
-            }
-            
             
             
             if (d['Embarked'] == 'Q') {
@@ -60,50 +63,49 @@
             }
         });
         
-        var dim = ndx.dimension(dc.pluck('Sex'));
-
-        function add_item(p, v) {
-            p.count++;
-            p.total += v.Age;
-            p.average = p.total / p.count;
-            return p;
-        }
-        
-        
-        function remove_item(p, v) {
-            p.count--;
-            if(p.count == 0){
-                p.total = 0;
-                p.average = 0;
-            } else {
-                p.total -= v.Age;
-                p.average = p.total / p.count;
+        titanicData.forEach(function(x){
+            
+            
+            if (x['Pclass'] == '1') {
+                x.Pclass = '1st Class';
+            } 
+            else if (x.Pclass == '2') {
+                x.Pclass = '2nd Class';
             }
-            return p;
-        }
+            else if (x.Pclass == '3') {
+                x.Pclass = "3rd Class";
+            } 
+            else {
+                x.Pclass = "Unknown";
+            }
+        });
         
-        function init() {
-            return { count: 0, total: 0, average: 0 };
-        }
-        
-        var measure = dim.group().reduce(add_item, remove_item, init);
-        
-        dc.barChart("#titanic-chart")
-            .width(900)
-            .height(450)
-            .margins({top: 10, right: 50, bottom: 30, left: 50})
-            .dimension(dim)
-            .group(measure)
-            .valueAccessor(function (d) {
-                console.log(d.value.average);
-                return d.value.average;
-            })
-            .transitionDuration(500)
-            .x(d3.scale.ordinal())
-            .xUnits(dc.units.ordinal)
-            .xAxisLabel("Embarked")
-            .yAxis().ticks(4);
-
+        var dim_embarked = ndx.dimension(dc.pluck('Embarked'));
+        var measure_embarked = dim_embarked.group()
+        dc.pieChart('#embark-chart')
+            .height(330)
+            .radius(120)
+            .transitionDuration(1500)
+            .dimension(dim_embarked)
+            .group(measure_embarked);
+            
+        var dim_sex = ndx.dimension(dc.pluck('Sex'));
+        var measure_sex = dim_sex.group()
+        dc.pieChart('#sex-chart')
+            .height(330)
+            .radius(120)
+            .transitionDuration(1500)
+            .dimension(dim_sex)
+            .group(measure_sex);
+            
+        var dim_Pclass = ndx.dimension(dc.pluck('Pclass'));
+        var measure_Pclass = dim_Pclass.group()
+        dc.pieChart('#Pclass-chart')
+            .height(330)
+            .radius(120)
+            .transitionDuration(1500)
+            .dimension(dim_Pclass)
+            .group(measure_Pclass);
         dc.renderAll();
     }
     </script>
